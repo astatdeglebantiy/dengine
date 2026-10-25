@@ -12,11 +12,17 @@ The project is an engine template, not a finished editor or a production-ready e
 - **CMake + Ninja** — cross-platform configuration and build.
 - **GitHub Actions** — Linux and Windows build checks.
 
-The D module currently exports three functions:
+The D module exports three functions:
 
 - `dengine_game_init()`
-- `dengine_game_update(float delta_seconds)`
+- `dengine_game_update(float delta_seconds, const DengineInputState* input)`
 - `dengine_game_shutdown()`
+
+## Input
+
+The input state records every SDL keyboard scancode, not just a fixed handful of keys. This includes letters, digits, function keys, arrows, modifiers, navigation keys, and other keys supported by the SDL version and keyboard layout. Common controls (W/A/S/D, Space, Escape) also have compatibility aliases.
+
+Mouse state includes button flags, cursor coordinates, per-frame relative motion, and per-frame scroll-wheel deltas. Held keyboard and mouse state is cleared when the window loses focus. The sample D logic demonstrates movement with WASD or arrow keys and mouse dragging.
 
 Edit `src_d/game_logic.d` to start changing game logic. Keep exported function names and signatures compatible with `include/game_logic.h` and `src_c/game_logic.c` unless you intentionally update both sides of the interface.
 
@@ -35,13 +41,9 @@ A Vulkan-capable graphics driver is required to run the current renderer.
 
 ### Arch Linux
 
-Install the common build dependencies:
-
 ```sh
 sudo pacman -S --needed base-devel cmake ninja sdl3 ldc shaderc
 ```
-
-If your system's package set differs, verify that `ldc2`, `glslc`, and the SDL3 CMake package are available in `PATH` or the standard CMake search paths.
 
 ### Windows
 
@@ -57,12 +59,12 @@ cmake --build build
 ./build/dengine
 ```
 
-On Windows, the executable is normally `build\\dengine.exe`:
+On Windows:
 
 ```powershell
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
-.\\build\\dengine.exe
+.\build\dengine.exe
 ```
 
 If SDL3 is installed in a custom prefix, pass it during configuration, for example:
@@ -70,8 +72,6 @@ If SDL3 is installed in a custom prefix, pass it during configuration, for examp
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=/path/to/sdl3
 ```
-
-CMake compiles the GLSL files in `shaders/` to SPIR-V under the build directory and builds the D game-logic shared library. Shader paths are supplied to the executable by CMake, so launching from the repository root should work.
 
 ## Repository layout
 
@@ -86,7 +86,7 @@ CMakeLists.txt Build configuration
 
 ## Status and next steps
 
-This is an early foundation. A general-purpose scene system, input abstraction, asset management, 2D/3D feature selection, physics modules, packaging, and a template-update workflow are not implemented yet. They should be introduced incrementally behind clear interfaces, with working builds preserved on Linux and Windows.
+The engine is an early foundation. A general-purpose scene system, asset management, 2D/3D feature selection, physics modules, packaging, visible rendering of the D-controlled game state, and a template-update workflow are not implemented yet. They should be introduced incrementally behind clear interfaces, with working builds preserved on Linux and Windows.
 
 ## CI
 
