@@ -80,3 +80,6 @@ jobs:
 
       - name: Build dengine
         run: cmake --build build --config Release --verbose
+
+      - name: Run automated tests
+        run: ctest --test-dir build --output-on-failure
