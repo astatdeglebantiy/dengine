@@ -17,9 +17,12 @@ bool DengineGameLogic_load(DengineGameLogic* game) {
 
     game->init = (DengineGameInit)SDL_LoadFunction(game->module, "dengine_game_init");
     game->update = (DengineGameUpdate)SDL_LoadFunction(game->module, "dengine_game_update");
+    game->get_player_position = (DengineGameGetPlayerPosition)SDL_LoadFunction(
+        game->module, "dengine_game_get_player_position"
+    );
     game->shutdown = (DengineGameShutdown)SDL_LoadFunction(game->module, "dengine_game_shutdown");
 
-    if (!game->init || !game->update || !game->shutdown) {
+    if (!game->init || !game->update || !game->get_player_position || !game->shutdown) {
         DengineGameLogic_unload(game);
         return false;
     }
