@@ -1,6 +1,5 @@
 #include "input.h"
 
-#include <string.h>
 
 static void clear_held_inputs(DengineInputState* input) {
     input->key_w = 0;
