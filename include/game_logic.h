@@ -1,13 +1,17 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <SDL3/SDL.h>
 
-int  dengine_game_init(void);
-void dengine_game_update(float delta_seconds);
-void dengine_game_shutdown(void);
+typedef int  (*DengineGameInit)(void);
+typedef void (*DengineGameUpdate)(float delta_seconds);
+typedef void (*DengineGameShutdown)(void);
 
-#ifdef __cplusplus
-}
-#endif
+typedef struct {
+    void* module;
+    DengineGameInit init;
+    DengineGameUpdate update;
+    DengineGameShutdown shutdown;
+} DengineGameLogic;
+
+bool DengineGameLogic_load(DengineGameLogic* game);
+void DengineGameLogic_unload(DengineGameLogic* game);
