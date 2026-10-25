@@ -76,6 +76,7 @@ add_custom_target(dengine_game_logic DEPENDS "${D_GAME_LOGIC_LIBRARY}")
 add_executable(dengine
     src_c/main.c
     src_c/window.c
+    src_c/input.c
     src_c/renderer.c
     src_c/game_logic.c
 )
