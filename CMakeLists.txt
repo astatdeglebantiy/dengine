@@ -17,6 +17,8 @@ find_program(
         "$ENV{VULKAN_SDK}/Bin"
         "$ENV{VULKAN_SDK}/bin"
         "$ENV{VULKAN_SDK}/Bin32"
+        "$ENV{GITHUB_WORKSPACE}/_vulkan_build/tools/bin"
+        "${CMAKE_CURRENT_SOURCE_DIR}/_vulkan_build/tools/bin"
     REQUIRED
 )
 
