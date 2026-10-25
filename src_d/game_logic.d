@@ -32,6 +32,10 @@ struct DengineInputState {
 private float player_x;
 private float player_y;
 
+export extern(C) uint dengine_game_input_state_size() nothrow @nogc {
+    return cast(uint) DengineInputState.sizeof;
+}
+
 export extern(C) int dengine_game_init() nothrow @nogc {
     player_x = 0.0f;
     player_y = 0.0f;
