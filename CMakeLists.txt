@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 project(dengine
     VERSION 0.1.0
-    LANGUAGES C
+    LANGUAGES C D
 )
 
 set(CMAKE_C_STANDARD 23)
@@ -62,6 +62,7 @@ add_executable(dengine
     src_c/main.c
     src_c/window.c
     src_c/renderer.c
+    src_d/game_logic.d
 )
 
 add_dependencies(dengine dengine_shaders)
