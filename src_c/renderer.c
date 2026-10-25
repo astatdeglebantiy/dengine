@@ -1,12 +1,16 @@
 #include "renderer.h"
-#include <stdio.h>
-#include <stdlib.h>
 
-static SDL_GPUShader* load_shader(SDL_GPUDevice* gpu, const char* path, SDL_GPUShaderStage stage) {
+#include <string.h>
+
+static SDL_GPUShader* load_shader(
+    SDL_GPUDevice* gpu,
+    const char* path,
+    SDL_GPUShaderStage stage
+) {
     size_t size = 0;
     void* code = SDL_LoadFile(path, &size);
     if (!code) {
-        SDL_Log("Не удалось найти файл шейдера: %s", path);
+        SDL_Log("Не удалось загрузить шейдер %s: %s", path, SDL_GetError());
         return NULL;
     }
 
@@ -24,17 +28,24 @@ static SDL_GPUShader* load_shader(SDL_GPUDevice* gpu, const char* path, SDL_GPUS
 
     SDL_GPUShader* shader = SDL_CreateGPUShader(gpu, &info);
     SDL_free(code);
+    if (!shader) {
+        SDL_Log("Не удалось создать шейдер %s: %s", path, SDL_GetError());
+    }
     return shader;
 }
 
 Renderer Renderer_create(Window* win) {
     Renderer r = {0};
-    SDL_GPUDevice* gpu = win->gpu_device;
+    if (!win || !win->gpu_device || !win->sdl_window) {
+        SDL_Log("Renderer_create получил некорректное окно или GPU-устройство.");
+        return r;
+    }
 
+    SDL_GPUDevice* gpu = win->gpu_device;
     static const Vertex VERTICES[3] = {
-        {  0.0f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f }, // Верх (Красный)
-        { -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f }, // Лево  (Зеленый)
-        {  0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f }  // Право (Синий)
+        {  0.0f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f },
+        { -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f },
+        {  0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f }
     };
 
     SDL_GPUBufferCreateInfo buf_info = {
@@ -42,42 +53,103 @@ Renderer Renderer_create(Window* win) {
         .size = sizeof(VERTICES)
     };
     r.vertex_buffer = SDL_CreateGPUBuffer(gpu, &buf_info);
+    if (!r.vertex_buffer) {
+        SDL_Log("Не удалось создать vertex buffer: %s", SDL_GetError());
+        return r;
+    }
 
     SDL_GPUTransferBufferCreateInfo transfer_info = {
         .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
         .size = sizeof(VERTICES)
     };
     SDL_GPUTransferBuffer* transfer_buf = SDL_CreateGPUTransferBuffer(gpu, &transfer_info);
+    if (!transfer_buf) {
+        SDL_Log("Не удалось создать transfer buffer: %s", SDL_GetError());
+        Renderer_destroy(&r, win);
+        return (Renderer){0};
+    }
+
     void* map = SDL_MapGPUTransferBuffer(gpu, transfer_buf, false);
+    if (!map) {
+        SDL_Log("Не удалось отобразить transfer buffer: %s", SDL_GetError());
+        SDL_ReleaseGPUTransferBuffer(gpu, transfer_buf);
+        Renderer_destroy(&r, win);
+        return (Renderer){0};
+    }
     memcpy(map, VERTICES, sizeof(VERTICES));
     SDL_UnmapGPUTransferBuffer(gpu, transfer_buf);
 
     SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(gpu);
+    if (!cmd) {
+        SDL_Log("Не удалось получить GPU command buffer: %s", SDL_GetError());
+        SDL_ReleaseGPUTransferBuffer(gpu, transfer_buf);
+        Renderer_destroy(&r, win);
+        return (Renderer){0};
+    }
+
     SDL_GPUCopyPass* copy = SDL_BeginGPUCopyPass(cmd);
-    SDL_GPUTransferBufferLocation src = { .transfer_buffer = transfer_buf, .offset = 0 };
-    SDL_GPUBufferRegion dst = { .buffer = r.vertex_buffer, .offset = 0, .size = sizeof(VERTICES) };
+    if (!copy) {
+        SDL_Log("Не удалось начать GPU copy pass: %s", SDL_GetError());
+        SDL_CancelGPUCommandBuffer(cmd);
+        SDL_ReleaseGPUTransferBuffer(gpu, transfer_buf);
+        Renderer_destroy(&r, win);
+        return (Renderer){0};
+    }
+
+    SDL_GPUTransferBufferLocation src = {
+        .transfer_buffer = transfer_buf,
+        .offset = 0
+    };
+    SDL_GPUBufferRegion dst = {
+        .buffer = r.vertex_buffer,
+        .offset = 0,
+        .size = sizeof(VERTICES)
+    };
     SDL_UploadToGPUBuffer(copy, &src, &dst, false);
     SDL_EndGPUCopyPass(copy);
-    SDL_SubmitGPUCommandBuffer(cmd);
+    if (!SDL_SubmitGPUCommandBuffer(cmd)) {
+        SDL_Log("Не удалось отправить GPU upload: %s", SDL_GetError());
+        SDL_ReleaseGPUTransferBuffer(gpu, transfer_buf);
+        Renderer_destroy(&r, win);
+        return (Renderer){0};
+    }
     SDL_ReleaseGPUTransferBuffer(gpu, transfer_buf);
 
-    SDL_GPUShader* vert_shader = load_shader(gpu, "shaders/triangle_vert.spv", SDL_GPU_SHADERSTAGE_VERTEX);
-    SDL_GPUShader* frag_shader = load_shader(gpu, "shaders/triangle_frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT);
+    SDL_GPUShader* vert_shader = load_shader(
+        gpu, "shaders/triangle_vert.spv", SDL_GPU_SHADERSTAGE_VERTEX
+    );
+    SDL_GPUShader* frag_shader = load_shader(
+        gpu, "shaders/triangle_frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT
+    );
+    if (!vert_shader || !frag_shader) {
+        if (vert_shader) SDL_ReleaseGPUShader(gpu, vert_shader);
+        if (frag_shader) SDL_ReleaseGPUShader(gpu, frag_shader);
+        Renderer_destroy(&r, win);
+        return (Renderer){0};
+    }
 
     SDL_GPUVertexAttribute attrs[2] = {
-        { .location = 0, .buffer_slot = 0, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, .offset = 0 },                     // Position (x,y,z)
-        { .location = 1, .buffer_slot = 0, .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, .offset = sizeof(float) * 3 }      // Color (r,g,b,a)
+        {
+            .location = 0,
+            .buffer_slot = 0,
+            .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
+            .offset = 0
+        },
+        {
+            .location = 1,
+            .buffer_slot = 0,
+            .format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+            .offset = sizeof(float) * 3
+        }
     };
     SDL_GPUVertexBufferDescription v_buf_desc = {
         .slot = 0,
         .pitch = sizeof(Vertex),
         .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX
     };
-
     SDL_GPUColorTargetDescription color_desc = {
         .format = SDL_GetGPUSwapchainTextureFormat(gpu, win->sdl_window)
     };
-
     SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {
         .vertex_shader = vert_shader,
         .fragment_shader = frag_shader,
@@ -95,18 +167,39 @@ Renderer Renderer_create(Window* win) {
     };
 
     r.pipeline = SDL_CreateGPUGraphicsPipeline(gpu, &pipeline_info);
-
     SDL_ReleaseGPUShader(gpu, vert_shader);
     SDL_ReleaseGPUShader(gpu, frag_shader);
+
+    if (!r.pipeline) {
+        SDL_Log("Не удалось создать graphics pipeline: %s", SDL_GetError());
+        Renderer_destroy(&r, win);
+        return (Renderer){0};
+    }
 
     return r;
 }
 
 void Renderer_draw(Renderer* self, Window* win) {
+    if (!self || !self->pipeline || !self->vertex_buffer ||
+        !win || !win->gpu_device || !win->sdl_window) {
+        return;
+    }
+
     SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(win->gpu_device);
-    
-    SDL_GPUTexture* swapchain;
-    if (!SDL_AcquireGPUSwapchainTexture(cmd, win->sdl_window, &swapchain, NULL, NULL)) {
+    if (!cmd) {
+        SDL_Log("Не удалось получить GPU command buffer для кадра: %s", SDL_GetError());
+        return;
+    }
+
+    SDL_GPUTexture* swapchain = NULL;
+    if (!SDL_AcquireGPUSwapchainTexture(
+            cmd, win->sdl_window, &swapchain, NULL, NULL)) {
+        SDL_Log("Не удалось получить swapchain texture: %s", SDL_GetError());
+        SDL_CancelGPUCommandBuffer(cmd);
+        return;
+    }
+
+    if (!swapchain) {
         SDL_SubmitGPUCommandBuffer(cmd);
         return;
     }
@@ -118,18 +211,36 @@ void Renderer_draw(Renderer* self, Window* win) {
         .store_op = SDL_GPU_STOREOP_STORE
     };
     SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(cmd, &target, 1, NULL);
+    if (!pass) {
+        SDL_Log("Не удалось начать GPU render pass: %s", SDL_GetError());
+        SDL_CancelGPUCommandBuffer(cmd);
+        return;
+    }
 
     SDL_BindGPUGraphicsPipeline(pass, self->pipeline);
-    SDL_GPUBufferBinding binding = { .buffer = self->vertex_buffer, .offset = 0 };
+    SDL_GPUBufferBinding binding = {
+        .buffer = self->vertex_buffer,
+        .offset = 0
+    };
     SDL_BindGPUVertexBuffers(pass, 0, &binding, 1);
-
     SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
-
     SDL_EndGPURenderPass(pass);
-    SDL_SubmitGPUCommandBuffer(cmd);
+
+    if (!SDL_SubmitGPUCommandBuffer(cmd)) {
+        SDL_Log("Не удалось отправить кадр в GPU: %s", SDL_GetError());
+    }
 }
 
 void Renderer_destroy(Renderer* self, Window* win) {
-    if (self->pipeline) SDL_ReleaseGPUGraphicsPipeline(win->gpu_device, self->pipeline);
-    if (self->vertex_buffer) SDL_ReleaseGPUBuffer(win->gpu_device, self->vertex_buffer);
+    if (!self || !win || !win->gpu_device) {
+        return;
+    }
+    if (self->pipeline) {
+        SDL_ReleaseGPUGraphicsPipeline(win->gpu_device, self->pipeline);
+        self->pipeline = NULL;
+    }
+    if (self->vertex_buffer) {
+        SDL_ReleaseGPUBuffer(win->gpu_device, self->vertex_buffer);
+        self->vertex_buffer = NULL;
+    }
 }
