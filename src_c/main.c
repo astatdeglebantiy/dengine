@@ -38,12 +38,18 @@ int main(void) {
     while (win.is_running) {
         DengineInput_begin_frame(&input);
         Window_poll_events(&win, &input);
+
         const Uint64 current_ticks = SDL_GetTicks();
-        const float delta_seconds = (float)(current_ticks - previous_ticks) / 1000.0f;
+        float delta_seconds = (float)(current_ticks - previous_ticks) / 1000.0f;
         previous_ticks = current_ticks;
+
+        /* Avoid huge simulation steps after stalls, debugger pauses, or window drags. */
+        if (delta_seconds > 0.05f) {
+            delta_seconds = 0.05f;
+        }
         game.update(delta_seconds, &input);
         Renderer_draw(&renderer, &win);
-        SDL_Delay(16);
+        SDL_Delay(1);
     }
 
     game.shutdown();
