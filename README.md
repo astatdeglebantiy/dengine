@@ -10,7 +10,8 @@ The project is an engine template, not a finished editor or a production-ready e
 - **D** — game logic, compiled as a shared library and loaded by the C host through SDL3's dynamic-library API.
 - **SDL3 GPU** — rendering with SPIR-V shaders and a vertex uniform for the D-controlled player position.
 - **CMake + Ninja** — cross-platform configuration and build.
-- **GitHub Actions** — Linux and Windows build checks.
+- **CTest** — automated input-state regression tests.
+- **GitHub Actions** — Linux and Windows build and test checks.
 
 The D module exports lifecycle/update functions and small ABI helpers:
 
@@ -74,7 +75,7 @@ On Windows:
 ```powershell
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
-.\build\dengine.exe
+.\\build\\dengine.exe
 ```
 
 If SDL3 is installed in a custom prefix, pass it during configuration, for example:
@@ -83,12 +84,23 @@ If SDL3 is installed in a custom prefix, pass it during configuration, for examp
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=/path/to/sdl3
 ```
 
+## Run automated tests
+
+The input tests use synthetic SDL events and do not need a window or GPU:
+
+```sh
+ctest --test-dir build --output-on-failure
+```
+
+The tests cover arbitrary keyboard scancodes, compatibility aliases, mouse buttons, cursor motion, wheel accumulation, per-frame transient-state reset, and clearing held inputs on focus loss.
+
 ## Repository layout
 
 ```text
 include/       C interfaces and shared engine types
 src_c/         C application, SDL3 window, renderer, and D module loader
 src_d/         D game-logic module and sample player behavior
+tests/         Automated C input-state tests
 shaders/       GLSL shader sources
 .github/       CI workflow for Linux and Windows
 CMakeLists.txt Build configuration
@@ -100,4 +112,4 @@ The current prototype demonstrates the C host, D game module, input, and GPU ren
 
 ## CI
 
-Pull requests and pushes to `master` build the project on Linux and Windows using GitHub Actions.
+Pull requests and pushes to `master` build the project and run the automated input tests on Linux and Windows using GitHub Actions.
