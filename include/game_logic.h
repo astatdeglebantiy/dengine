@@ -1,9 +1,10 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include "input.h"
 
 typedef int  (*DengineGameInit)(void);
-typedef void (*DengineGameUpdate)(float delta_seconds);
+typedef void (*DengineGameUpdate)(float delta_seconds, const DengineInputState* input);
 typedef void (*DengineGameShutdown)(void);
 
 typedef struct {
