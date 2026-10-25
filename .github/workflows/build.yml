@@ -36,6 +36,11 @@ jobs:
             libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev \
             libibus-1.0-dev libpipewire-0.3-dev libdrm-dev libgbm-dev
 
+      - name: Install D compiler
+        uses: dlang-community/setup-dlang@v2
+        with:
+          compiler: ldc-latest
+
       - name: Install Vulkan shader compiler
         uses: humbletim/setup-vulkan-sdk@v1.2.1
         with:
