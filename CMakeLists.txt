@@ -84,7 +84,7 @@ add_dependencies(dengine dengine_shaders dengine_game_logic)
 
 target_include_directories(dengine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_compile_definitions(dengine PRIVATE
-    DENGINE_GAME_LOGIC_LIBRARY_PATH="${D_GAME_LOGIC_LIBRARY}"
+    DENGINE_GAME_LOGIC_LIBRARY_PATH=\"${D_GAME_LOGIC_LIBRARY}\"
 )
 target_link_libraries(dengine PRIVATE SDL3::SDL3)
 
