@@ -27,7 +27,7 @@ static SDL_GPUShader* load_shader(
         .num_samplers = 0,
         .num_storage_textures = 0,
         .num_storage_buffers = 0,
-        .num_uniform_buffers = 0
+        .num_uniform_buffers = stage == SDL_GPU_SHADERSTAGE_VERTEX ? 1 : 0
     };
 
     SDL_GPUShader* shader = SDL_CreateGPUShader(gpu, &info);
@@ -47,9 +47,9 @@ Renderer Renderer_create(Window* win) {
 
     SDL_GPUDevice* gpu = win->gpu_device;
     static const Vertex VERTICES[3] = {
-        {  0.0f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f },
-        { -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f },
-        {  0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f }
+        {  0.0f,  0.5f, 0.0f,   1.0f, 0.25f, 0.20f, 1.0f },
+        { -0.5f, -0.5f, 0.0f,   0.2f, 0.8f,  0.95f, 1.0f },
+        {  0.5f, -0.5f, 0.0f,   0.95f, 0.75f, 0.2f, 1.0f }
     };
 
     SDL_GPUBufferCreateInfo buf_info = {
@@ -183,7 +183,7 @@ Renderer Renderer_create(Window* win) {
     return r;
 }
 
-void Renderer_draw(Renderer* self, Window* win) {
+void Renderer_draw(Renderer* self, Window* win, float player_x, float player_y) {
     if (!self || !self->pipeline || !self->vertex_buffer ||
         !win || !win->gpu_device || !win->sdl_window) {
         return;
@@ -194,6 +194,9 @@ void Renderer_draw(Renderer* self, Window* win) {
         SDL_Log("Failed to acquire GPU command buffer for frame: %s", SDL_GetError());
         return;
     }
+
+    const float player_offset[2] = { player_x, player_y };
+    SDL_PushGPUVertexUniformData(cmd, 0, player_offset, sizeof(player_offset));
 
     SDL_GPUTexture* swapchain = NULL;
     if (!SDL_AcquireGPUSwapchainTexture(
@@ -210,7 +213,7 @@ void Renderer_draw(Renderer* self, Window* win) {
 
     SDL_GPUColorTargetInfo target = {
         .texture = swapchain,
-        .clear_color = { 0.12f, 0.12f, 0.15f, 1.0f },
+        .clear_color = { 0.035f, 0.045f, 0.075f, 1.0f },
         .load_op = SDL_GPU_LOADOP_CLEAR,
         .store_op = SDL_GPU_STOREOP_STORE
     };
