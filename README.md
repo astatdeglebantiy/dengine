@@ -1,6 +1,6 @@
 # Dengine
 
-Dengine is an experimental, cross-platform game-engine starter built with **C23**, **D**, **SDL3**, and the SDL GPU API. The current prototype opens a window, renders a GPU triangle, and loads game logic from a D shared library.
+Dengine is an experimental, cross-platform game-engine starter built with **C23**, **D**, **SDL3**, and the SDL GPU API. The prototype opens a window, renders a colored triangle, and loads game logic from a D shared library. The triangle is controlled by the D game module.
 
 The project is an engine template, not a finished editor or a production-ready engine. Linux and Windows are the initial targets.
 
@@ -8,23 +8,34 @@ The project is an engine template, not a finished editor or a production-ready e
 
 - **C23** — application lifecycle, SDL3 window/events, GPU rendering, and the C ABI boundary.
 - **D** — game logic, compiled as a shared library and loaded by the C host through SDL3's dynamic-library API.
-- **SDL3 GPU** — rendering with SPIR-V shaders.
+- **SDL3 GPU** — rendering with SPIR-V shaders and a vertex uniform for the D-controlled player position.
 - **CMake + Ninja** — cross-platform configuration and build.
-- **GitHub Actions** — Linux and Windows build checks.
+- **CTest** — automated input-state regression tests.
+- **GitHub Actions** — Linux and Windows build and test checks.
 
-The D module exports three functions:
+The D module exports lifecycle/update functions and small ABI helpers:
 
 - `dengine_game_init()`
 - `dengine_game_update(float delta_seconds, const DengineInputState* input)`
+- `dengine_game_get_player_position(float* x, float* y)`
+- `dengine_game_input_state_size()`
 - `dengine_game_shutdown()`
+
+The C host checks the reported D input-state size against `sizeof(DengineInputState)` before starting the game. This catches a common class of C/D ABI mismatch before passing input to the D module.
+
+## Run the demo
+
+- **W/A/S/D** or **arrow keys** — move the triangle.
+- **Hold the left mouse button and drag** — move the triangle with the pointer.
+- The sample logic clamps the player position to keep the triangle visible.
+
+Edit `src_d/game_logic.d` to start changing game logic. Keep exported function names and signatures compatible with `include/game_logic.h` and `src_c/game_logic.c` unless you intentionally update both sides of the interface.
 
 ## Input
 
 The input state records every SDL keyboard scancode, not just a fixed handful of keys. This includes letters, digits, function keys, arrows, modifiers, navigation keys, and other keys supported by the SDL version and keyboard layout. Common controls (W/A/S/D, Space, Escape) also have compatibility aliases.
 
-Mouse state includes button flags, cursor coordinates, per-frame relative motion, and per-frame scroll-wheel deltas. Held keyboard and mouse state is cleared when the window loses focus. The sample D logic demonstrates movement with WASD or arrow keys and mouse dragging.
-
-Edit `src_d/game_logic.d` to start changing game logic. Keep exported function names and signatures compatible with `include/game_logic.h` and `src_c/game_logic.c` unless you intentionally update both sides of the interface.
+Mouse state includes button flags, cursor coordinates, per-frame relative motion, and per-frame scroll-wheel deltas. Held keyboard and mouse state is cleared when the window loses focus.
 
 ## Requirements
 
@@ -37,7 +48,7 @@ Install the following tools:
 - LDC (`ldc2`) for compiling D
 - Vulkan shader tools providing `glslc` or `glslangValidator`
 
-A Vulkan-capable graphics driver is required to run the current renderer.
+A Vulkan-capable graphics driver is required to run the renderer.
 
 ### Arch Linux
 
@@ -47,7 +58,7 @@ sudo pacman -S --needed base-devel cmake ninja sdl3 ldc shaderc
 
 ### Windows
 
-Install Visual Studio Build Tools with a C compiler, CMake, Ninja, LDC, SDL3 development files, and the Vulkan SDK (including shader tools). Run the following commands from a Developer PowerShell or a terminal where those tools are on `PATH`.
+Install Visual Studio Build Tools with a C compiler, CMake, Ninja, LDC, SDL3 development files, and the Vulkan SDK (including shader tools). Run the commands below from a Developer PowerShell or a terminal where those tools are on `PATH`.
 
 ## Build and run
 
@@ -64,7 +75,7 @@ On Windows:
 ```powershell
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
-.\build\dengine.exe
+.\\build\\dengine.exe
 ```
 
 If SDL3 is installed in a custom prefix, pass it during configuration, for example:
@@ -73,12 +84,23 @@ If SDL3 is installed in a custom prefix, pass it during configuration, for examp
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=/path/to/sdl3
 ```
 
+## Run automated tests
+
+The input tests use synthetic SDL events and do not need a window or GPU:
+
+```sh
+ctest --test-dir build --output-on-failure
+```
+
+The tests cover arbitrary keyboard scancodes, compatibility aliases, mouse buttons, cursor motion, wheel accumulation, per-frame transient-state reset, and clearing held inputs on focus loss.
+
 ## Repository layout
 
 ```text
 include/       C interfaces and shared engine types
 src_c/         C application, SDL3 window, renderer, and D module loader
-src_d/         D game-logic module
+src_d/         D game-logic module and sample player behavior
+tests/         Automated C input-state tests
 shaders/       GLSL shader sources
 .github/       CI workflow for Linux and Windows
 CMakeLists.txt Build configuration
@@ -86,8 +108,8 @@ CMakeLists.txt Build configuration
 
 ## Status and next steps
 
-The engine is an early foundation. A general-purpose scene system, asset management, 2D/3D feature selection, physics modules, packaging, visible rendering of the D-controlled game state, and a template-update workflow are not implemented yet. They should be introduced incrementally behind clear interfaces, with working builds preserved on Linux and Windows.
+The current prototype demonstrates the C host, D game module, input, and GPU rendering connected end-to-end. It is still not a full engine: a scene system, asset management, 2D/3D feature selection, physics modules, packaging, and a template-update workflow remain future work. Add these incrementally behind clear interfaces, preserving Linux and Windows builds.
 
 ## CI
 
-Pull requests and pushes to `master` build the project on Linux and Windows using GitHub Actions.
+Pull requests and pushes to `master` build the project and run the automated input tests on Linux and Windows using GitHub Actions.
