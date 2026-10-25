@@ -3,7 +3,7 @@
 #include "window.h"
 
 int main(void) {
-    Window win = Window_create(800, 600, "Dengine GPU Triangle");
+    Window win = Window_create(800, 600, "Dengine - WASD / Arrows to move");
     if (!win.is_running) {
         Window_destroy(&win);
         return 1;
@@ -33,6 +33,7 @@ int main(void) {
         return 1;
     }
 
+    SDL_Log("Dengine demo: move the triangle with WASD or arrow keys; hold left mouse and drag.");
     DengineInputState input = {0};
     Uint64 previous_ticks = SDL_GetTicks();
     while (win.is_running) {
@@ -47,8 +48,13 @@ int main(void) {
         if (delta_seconds > 0.05f) {
             delta_seconds = 0.05f;
         }
+
         game.update(delta_seconds, &input);
-        Renderer_draw(&renderer, &win);
+
+        float player_x = 0.0f;
+        float player_y = 0.0f;
+        game.get_player_position(&player_x, &player_y);
+        Renderer_draw(&renderer, &win, player_x, player_y);
         SDL_Delay(1);
     }
 
