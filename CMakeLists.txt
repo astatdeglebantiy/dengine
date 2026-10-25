@@ -10,7 +10,15 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 find_package(SDL3 CONFIG REQUIRED)
-find_program(GLSLC_EXECUTABLE NAMES glslc glslangValidator REQUIRED)
+find_program(
+    GLSLC_EXECUTABLE
+    NAMES glslc glslangValidator
+    HINTS
+        "$ENV{VULKAN_SDK}/Bin"
+        "$ENV{VULKAN_SDK}/bin"
+        "$ENV{VULKAN_SDK}/Bin32"
+    REQUIRED
+)
 
 set(SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
 file(MAKE_DIRECTORY "${SHADER_OUTPUT_DIR}")
