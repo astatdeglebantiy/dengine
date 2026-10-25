@@ -10,6 +10,7 @@ The project is an engine template, not a finished editor or a production-ready e
 - **D** — game logic, compiled as a shared library and loaded by the C host through SDL3's dynamic-library API.
 - **SDL3 GPU** — rendering with SPIR-V shaders.
 - **CMake + Ninja** — cross-platform configuration and build.
+- **CTest** — automated input-state regression tests.
 - **GitHub Actions** — Linux and Windows build checks.
 
 The D module exports three functions:
@@ -22,32 +23,7 @@ The D module exports three functions:
 
 The input state records every SDL keyboard scancode, not just a fixed handful of keys. This includes letters, digits, function keys, arrows, modifiers, navigation keys, and other keys supported by the SDL version and keyboard layout. Common controls (W/A/S/D, Space, Escape) also have compatibility aliases.
 
-Mouse state includes button flags, cursor coordinates, per-frame relative motion, and per-frame scroll-wheel deltas. Held keyboard and mouse state is cleared when the window loses focus. The sample D logic demonstrates movement with WASD or arrow keys and mouse dragging.
-
-Edit `src_d/game_logic.d` to start changing game logic. Keep exported function names and signatures compatible with `include/game_logic.h` and `src_c/game_logic.c` unless you intentionally update both sides of the interface.
-
-## Requirements
-
-Install the following tools:
-
-- A C23-capable C compiler
-- CMake 3.21 or newer
-- Ninja
-- SDL3 development files with the SDL3 CMake package
-- LDC (`ldc2`) for compiling D
-- Vulkan shader tools providing `glslc` or `glslangValidator`
-
-A Vulkan-capable graphics driver is required to run the current renderer.
-
-### Arch Linux
-
-```sh
-sudo pacman -S --needed base-devel cmake ninja sdl3 ldc shaderc
-```
-
-### Windows
-
-Install Visual Studio Build Tools with a C compiler, CMake, Ninja, LDC, SDL3 development files, and the Vulkan SDK (including shader tools). Run the following commands from a Developer PowerShell or a terminal where those tools are on `PATH`.
+Mouse state includes button flags, cursor coordinates, per-frame relative motion, and per-frame scroll-wheel deltas. Held keyboard and mouse state is cleared when the window loses focus. The sample D logic demonstrates movement with WASD or arrow keys and mouse dragging. The D sample currently updates internal player coordinates; the renderer does not yet display that position.
 
 ## Build and run
 
@@ -73,12 +49,46 @@ If SDL3 is installed in a custom prefix, pass it during configuration, for examp
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=/path/to/sdl3
 ```
 
+## Run automated tests
+
+The input tests use synthetic SDL events and do not need a window or GPU:
+
+```sh
+ctest --test-dir build --output-on-failure
+```
+
+The tests cover arbitrary keyboard scancodes, compatibility aliases, mouse buttons, cursor motion, wheel accumulation, per-frame transient-state reset, and clearing held inputs on focus loss.
+
+## Requirements
+
+Install the following tools:
+
+- A C23-capable C compiler
+- CMake 3.21 or newer
+- Ninja
+- SDL3 development files with the SDL3 CMake package
+- LDC (`ldc2`) for compiling D
+- Vulkan shader tools providing `glslc` or `glslangValidator`
+
+A Vulkan-capable graphics driver is required to run the renderer. The input test target only requires the C compiler and SDL3, but CMake configuration currently also discovers the D and shader compilers for the full engine.
+
+### Arch Linux
+
+```sh
+sudo pacman -S --needed base-devel cmake ninja sdl3 ldc shaderc
+```
+
+### Windows
+
+Install Visual Studio Build Tools with a C compiler, CMake, Ninja, LDC, SDL3 development files, and the Vulkan SDK (including shader tools). Run the commands above from a Developer PowerShell or a terminal where those tools are on `PATH`.
+
 ## Repository layout
 
 ```text
 include/       C interfaces and shared engine types
 src_c/         C application, SDL3 window, renderer, and D module loader
 src_d/         D game-logic module
+tests/         Automated C input-state tests
 shaders/       GLSL shader sources
 .github/       CI workflow for Linux and Windows
 CMakeLists.txt Build configuration
