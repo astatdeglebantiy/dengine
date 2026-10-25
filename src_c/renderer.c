@@ -2,6 +2,10 @@
 
 #include <string.h>
 
+#ifndef DENGINE_SHADER_DIR
+#error DENGINE_SHADER_DIR must be set by CMake
+#endif
+
 static SDL_GPUShader* load_shader(
     SDL_GPUDevice* gpu,
     const char* path,
@@ -116,10 +120,10 @@ Renderer Renderer_create(Window* win) {
     SDL_ReleaseGPUTransferBuffer(gpu, transfer_buf);
 
     SDL_GPUShader* vert_shader = load_shader(
-        gpu, "shaders/triangle_vert.spv", SDL_GPU_SHADERSTAGE_VERTEX
+        gpu, DENGINE_SHADER_DIR "/triangle_vert.spv", SDL_GPU_SHADERSTAGE_VERTEX
     );
     SDL_GPUShader* frag_shader = load_shader(
-        gpu, "shaders/triangle_frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT
+        gpu, DENGINE_SHADER_DIR "/triangle_frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT
     );
     if (!vert_shader || !frag_shader) {
         if (vert_shader) SDL_ReleaseGPUShader(gpu, vert_shader);
