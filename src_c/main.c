@@ -33,13 +33,15 @@ int main(void) {
         return 1;
     }
 
+    DengineInputState input = {0};
     Uint64 previous_ticks = SDL_GetTicks();
     while (win.is_running) {
-        Window_poll_events(&win);
+        DengineInput_begin_frame(&input);
+        Window_poll_events(&win, &input);
         const Uint64 current_ticks = SDL_GetTicks();
         const float delta_seconds = (float)(current_ticks - previous_ticks) / 1000.0f;
         previous_ticks = current_ticks;
-        game.update(delta_seconds);
+        game.update(delta_seconds, &input);
         Renderer_draw(&renderer, &win);
         SDL_Delay(16);
     }
