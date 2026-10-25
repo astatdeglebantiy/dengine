@@ -6,6 +6,8 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+include(CTest)
+
 find_package(SDL3 CONFIG REQUIRED)
 find_program(LDC2_EXECUTABLE NAMES ldc2 ldc2.exe REQUIRED)
 find_program(
@@ -85,8 +87,8 @@ add_dependencies(dengine dengine_shaders dengine_game_logic)
 
 target_include_directories(dengine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_compile_definitions(dengine PRIVATE
-    DENGINE_GAME_LOGIC_LIBRARY_PATH=\"${D_GAME_LOGIC_LIBRARY}\"
-    DENGINE_SHADER_DIR=\"${SHADER_OUTPUT_DIR}\"
+    DENGINE_GAME_LOGIC_LIBRARY_PATH="${D_GAME_LOGIC_LIBRARY}"
+    DENGINE_SHADER_DIR="${SHADER_OUTPUT_DIR}"
 )
 target_link_libraries(dengine PRIVATE SDL3::SDL3)
 
@@ -94,4 +96,19 @@ if(MSVC)
     target_compile_options(dengine PRIVATE /W4)
 else()
     target_compile_options(dengine PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(dengine_input_tests
+        tests/input_test.c
+        src_c/input.c
+    )
+    target_include_directories(dengine_input_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    target_link_libraries(dengine_input_tests PRIVATE SDL3::SDL3)
+    if(MSVC)
+        target_compile_options(dengine_input_tests PRIVATE /W4)
+    else()
+        target_compile_options(dengine_input_tests PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
+    endif()
+    add_test(NAME dengine_input_tests COMMAND dengine_input_tests)
 endif()
