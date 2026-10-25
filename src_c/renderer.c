@@ -29,7 +29,7 @@ static SDL_GPUShader* load_shader(
     SDL_GPUShader* shader = SDL_CreateGPUShader(gpu, &info);
     SDL_free(code);
     if (!shader) {
-        SDL_Log("Не удалось создать шейдер %s: %s", path, SDL_GetError());
+        SDL_Log("Failed to create shader %s: %s", path, SDL_GetError());
     }
     return shader;
 }
