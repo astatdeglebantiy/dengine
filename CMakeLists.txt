@@ -1,15 +1,13 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(dengine
-    VERSION 0.1.0
-    LANGUAGES C D
-)
+project(dengine VERSION 0.1.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 find_package(SDL3 CONFIG REQUIRED)
+find_program(LDC2_EXECUTABLE NAMES ldc2 ldc2.exe REQUIRED)
 find_program(
     GLSLC_EXECUTABLE
     NAMES glslc glslangValidator
@@ -58,30 +56,40 @@ add_custom_command(
 
 add_custom_target(dengine_shaders DEPENDS ${SPIRV_SHADERS})
 
+set(D_GAME_LOGIC_LIBRARY
+    "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}game_logic${CMAKE_SHARED_LIBRARY_SUFFIX}"
+)
+
+add_custom_command(
+    OUTPUT "${D_GAME_LOGIC_LIBRARY}"
+    COMMAND "${LDC2_EXECUTABLE}"
+        -shared
+        "-of=${D_GAME_LOGIC_LIBRARY}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src_d/game_logic.d"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src_d/game_logic.d"
+    COMMENT "Building D game-logic shared library"
+    VERBATIM
+)
+
+add_custom_target(dengine_game_logic DEPENDS "${D_GAME_LOGIC_LIBRARY}")
+
 add_executable(dengine
     src_c/main.c
     src_c/window.c
     src_c/renderer.c
-    src_d/game_logic.d
+    src_c/game_logic.c
 )
 
-add_dependencies(dengine dengine_shaders)
+add_dependencies(dengine dengine_shaders dengine_game_logic)
 
-target_include_directories(dengine
-    PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+target_include_directories(dengine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_definitions(dengine PRIVATE
+    DENGINE_GAME_LOGIC_LIBRARY_PATH="${D_GAME_LOGIC_LIBRARY}"
 )
-
 target_link_libraries(dengine PRIVATE SDL3::SDL3)
 
 if(MSVC)
     target_compile_options(dengine PRIVATE /W4)
 else()
-    target_compile_options(dengine PRIVATE
-        -Wall
-        -Wextra
-        -Wpedantic
-        -Wconversion
-        -Wshadow
-    )
+    target_compile_options(dengine PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow)
 endif()
