@@ -10,6 +10,37 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 find_package(SDL3 CONFIG REQUIRED)
+find_program(GLSLC_EXECUTABLE NAMES glslc REQUIRED)
+
+set(SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
+file(MAKE_DIRECTORY "${SHADER_OUTPUT_DIR}")
+
+set(SPIRV_SHADERS
+    "${SHADER_OUTPUT_DIR}/triangle_vert.spv"
+    "${SHADER_OUTPUT_DIR}/triangle_frag.spv"
+)
+
+add_custom_command(
+    OUTPUT "${SHADER_OUTPUT_DIR}/triangle_vert.spv"
+    COMMAND "${GLSLC_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.vert"
+        -o "${SHADER_OUTPUT_DIR}/triangle_vert.spv"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.vert"
+    COMMENT "Compiling vertex shader to SPIR-V"
+    VERBATIM
+)
+
+add_custom_command(
+    OUTPUT "${SHADER_OUTPUT_DIR}/triangle_frag.spv"
+    COMMAND "${GLSLC_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.frag"
+        -o "${SHADER_OUTPUT_DIR}/triangle_frag.spv"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.frag"
+    COMMENT "Compiling fragment shader to SPIR-V"
+    VERBATIM
+)
+
+add_custom_target(dengine_shaders DEPENDS ${SPIRV_SHADERS})
 
 add_executable(dengine
     src_c/main.c
@@ -17,20 +48,14 @@ add_executable(dengine
     src_c/renderer.c
 )
 
+add_dependencies(dengine dengine_shaders)
+
 target_include_directories(dengine
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
-target_link_libraries(dengine
-    PRIVATE
-        SDL3::SDL3
-)
-
-# Keep shader assets available from the build directory.
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
-)
+target_link_libraries(dengine PRIVATE SDL3::SDL3)
 
 if(MSVC)
     target_compile_options(dengine PRIVATE /W4)
