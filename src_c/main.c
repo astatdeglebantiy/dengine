@@ -10,7 +10,7 @@ int main(void) {
 
     Renderer renderer = Renderer_create(&win);
     if (!renderer.pipeline || !renderer.vertex_buffer) {
-        SDL_Log("Не удалось создать ресурсы рендерера.");
+        SDL_Log("Failed to create renderer resources.");
         Renderer_destroy(&renderer, &win);
         Window_destroy(&win);
         return 1;
