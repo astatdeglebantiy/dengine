@@ -10,7 +10,7 @@ static SDL_GPUShader* load_shader(
     size_t size = 0;
     void* code = SDL_LoadFile(path, &size);
     if (!code) {
-        SDL_Log("Не удалось загрузить шейдер %s: %s", path, SDL_GetError());
+        SDL_Log("Failed to load shader %s: %s", path, SDL_GetError());
         return NULL;
     }
 
@@ -29,7 +29,7 @@ static SDL_GPUShader* load_shader(
     SDL_GPUShader* shader = SDL_CreateGPUShader(gpu, &info);
     SDL_free(code);
     if (!shader) {
-        SDL_Log("Не удалось создать шейдер %s: %s", path, SDL_GetError());
+        SDL_Log("Failed to create shader %s: %s", path, SDL_GetError());
     }
     return shader;
 }
@@ -37,7 +37,7 @@ static SDL_GPUShader* load_shader(
 Renderer Renderer_create(Window* win) {
     Renderer r = {0};
     if (!win || !win->gpu_device || !win->sdl_window) {
-        SDL_Log("Renderer_create получил некорректное окно или GPU-устройство.");
+        SDL_Log("Renderer_create received an invalid window or GPU device.");
         return r;
     }
 
@@ -54,7 +54,7 @@ Renderer Renderer_create(Window* win) {
     };
     r.vertex_buffer = SDL_CreateGPUBuffer(gpu, &buf_info);
     if (!r.vertex_buffer) {
-        SDL_Log("Не удалось создать vertex buffer: %s", SDL_GetError());
+        SDL_Log("Failed to create vertex buffer: %s", SDL_GetError());
         return r;
     }
 
@@ -64,14 +64,14 @@ Renderer Renderer_create(Window* win) {
     };
     SDL_GPUTransferBuffer* transfer_buf = SDL_CreateGPUTransferBuffer(gpu, &transfer_info);
     if (!transfer_buf) {
-        SDL_Log("Не удалось создать transfer buffer: %s", SDL_GetError());
+        SDL_Log("Failed to create transfer buffer: %s", SDL_GetError());
         Renderer_destroy(&r, win);
         return (Renderer){0};
     }
 
     void* map = SDL_MapGPUTransferBuffer(gpu, transfer_buf, false);
     if (!map) {
-        SDL_Log("Не удалось отобразить transfer buffer: %s", SDL_GetError());
+        SDL_Log("Failed to map transfer buffer: %s", SDL_GetError());
         SDL_ReleaseGPUTransferBuffer(gpu, transfer_buf);
         Renderer_destroy(&r, win);
         return (Renderer){0};
@@ -81,7 +81,7 @@ Renderer Renderer_create(Window* win) {
 
     SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(gpu);
     if (!cmd) {
-        SDL_Log("Не удалось получить GPU command buffer: %s", SDL_GetError());
+        SDL_Log("Failed to acquire GPU command buffer: %s", SDL_GetError());
         SDL_ReleaseGPUTransferBuffer(gpu, transfer_buf);
         Renderer_destroy(&r, win);
         return (Renderer){0};
@@ -89,7 +89,7 @@ Renderer Renderer_create(Window* win) {
 
     SDL_GPUCopyPass* copy = SDL_BeginGPUCopyPass(cmd);
     if (!copy) {
-        SDL_Log("Не удалось начать GPU copy pass: %s", SDL_GetError());
+        SDL_Log("Failed to begin GPU copy pass: %s", SDL_GetError());
         SDL_CancelGPUCommandBuffer(cmd);
         SDL_ReleaseGPUTransferBuffer(gpu, transfer_buf);
         Renderer_destroy(&r, win);
@@ -108,7 +108,7 @@ Renderer Renderer_create(Window* win) {
     SDL_UploadToGPUBuffer(copy, &src, &dst, false);
     SDL_EndGPUCopyPass(copy);
     if (!SDL_SubmitGPUCommandBuffer(cmd)) {
-        SDL_Log("Не удалось отправить GPU upload: %s", SDL_GetError());
+        SDL_Log("Failed to submit GPU upload: %s", SDL_GetError());
         SDL_ReleaseGPUTransferBuffer(gpu, transfer_buf);
         Renderer_destroy(&r, win);
         return (Renderer){0};
@@ -171,7 +171,7 @@ Renderer Renderer_create(Window* win) {
     SDL_ReleaseGPUShader(gpu, frag_shader);
 
     if (!r.pipeline) {
-        SDL_Log("Не удалось создать graphics pipeline: %s", SDL_GetError());
+        SDL_Log("Failed to create graphics pipeline: %s", SDL_GetError());
         Renderer_destroy(&r, win);
         return (Renderer){0};
     }
@@ -187,14 +187,14 @@ void Renderer_draw(Renderer* self, Window* win) {
 
     SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(win->gpu_device);
     if (!cmd) {
-        SDL_Log("Не удалось получить GPU command buffer для кадра: %s", SDL_GetError());
+        SDL_Log("Failed to acquire GPU command buffer for frame: %s", SDL_GetError());
         return;
     }
 
     SDL_GPUTexture* swapchain = NULL;
     if (!SDL_AcquireGPUSwapchainTexture(
             cmd, win->sdl_window, &swapchain, NULL, NULL)) {
-        SDL_Log("Не удалось получить swapchain texture: %s", SDL_GetError());
+        SDL_Log("Failed to acquire swapchain texture: %s", SDL_GetError());
         SDL_CancelGPUCommandBuffer(cmd);
         return;
     }
@@ -212,7 +212,7 @@ void Renderer_draw(Renderer* self, Window* win) {
     };
     SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(cmd, &target, 1, NULL);
     if (!pass) {
-        SDL_Log("Не удалось начать GPU render pass: %s", SDL_GetError());
+        SDL_Log("Failed to begin GPU render pass: %s", SDL_GetError());
         SDL_CancelGPUCommandBuffer(cmd);
         return;
     }
@@ -227,7 +227,7 @@ void Renderer_draw(Renderer* self, Window* win) {
     SDL_EndGPURenderPass(pass);
 
     if (!SDL_SubmitGPUCommandBuffer(cmd)) {
-        SDL_Log("Не удалось отправить кадр в GPU: %s", SDL_GetError());
+        SDL_Log("Failed to submit frame to GPU: %s", SDL_GetError());
     }
 }
 

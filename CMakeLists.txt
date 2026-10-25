@@ -10,10 +10,26 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 find_package(SDL3 CONFIG REQUIRED)
-find_program(GLSLC_EXECUTABLE NAMES glslc REQUIRED)
+find_program(
+    GLSLC_EXECUTABLE
+    NAMES glslc glslangValidator
+    HINTS
+        "$ENV{VULKAN_SDK}/Bin"
+        "$ENV{VULKAN_SDK}/bin"
+        "$ENV{VULKAN_SDK}/Bin32"
+        "$ENV{GITHUB_WORKSPACE}/_vulkan_build/tools/bin"
+        "${CMAKE_CURRENT_SOURCE_DIR}/_vulkan_build/tools/bin"
+    REQUIRED
+)
 
 set(SHADER_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
 file(MAKE_DIRECTORY "${SHADER_OUTPUT_DIR}")
+
+if(GLSLC_EXECUTABLE MATCHES "glslangValidator")
+    set(SHADER_COMPILER_FLAGS -V)
+else()
+    set(SHADER_COMPILER_FLAGS)
+endif()
 
 set(SPIRV_SHADERS
     "${SHADER_OUTPUT_DIR}/triangle_vert.spv"
@@ -22,7 +38,7 @@ set(SPIRV_SHADERS
 
 add_custom_command(
     OUTPUT "${SHADER_OUTPUT_DIR}/triangle_vert.spv"
-    COMMAND "${GLSLC_EXECUTABLE}"
+    COMMAND "${GLSLC_EXECUTABLE}" ${SHADER_COMPILER_FLAGS}
         "${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.vert"
         -o "${SHADER_OUTPUT_DIR}/triangle_vert.spv"
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.vert"
@@ -32,7 +48,7 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT "${SHADER_OUTPUT_DIR}/triangle_frag.spv"
-    COMMAND "${GLSLC_EXECUTABLE}"
+    COMMAND "${GLSLC_EXECUTABLE}" ${SHADER_COMPILER_FLAGS}
         "${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.frag"
         -o "${SHADER_OUTPUT_DIR}/triangle_frag.spv"
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.frag"
