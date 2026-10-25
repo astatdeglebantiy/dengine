@@ -44,13 +44,14 @@ Window Window_create(int width, int height, const char* title) {
     return win;
 }
 
-void Window_poll_events(Window* self) {
+void Window_poll_events(Window* self, DengineInputState* input) {
     if (!self) {
         return;
     }
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        DengineInput_process_event(input, &event);
         if (event.type == SDL_EVENT_QUIT) {
             self->is_running = false;
         }
