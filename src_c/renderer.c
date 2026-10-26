@@ -46,10 +46,11 @@ Renderer Renderer_create(Window* win) {
     }
 
     SDL_GPUDevice* gpu = win->gpu_device;
+    /* Pure RGB vertex colors: red at the top, green bottom-left, blue bottom-right. */
     static const Vertex VERTICES[3] = {
-        {  0.0f,  0.5f, 0.0f,   1.0f, 0.25f, 0.20f, 1.0f },
-        { -0.5f, -0.5f, 0.0f,   0.2f, 0.8f,  0.95f, 1.0f },
-        {  0.5f, -0.5f, 0.0f,   0.95f, 0.75f, 0.2f, 1.0f }
+        {  0.0f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f },
+        { -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f },
+        {  0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f }
     };
 
     SDL_GPUBufferCreateInfo buf_info = {

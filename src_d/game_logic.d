@@ -51,14 +51,17 @@ export extern(C) void dengine_game_update(
     }
 
     const float movement = delta_seconds * 0.8f;
-    if (input.keys[KEY_W] != 0 || input.keys[KEY_UP] != 0) player_y -= movement;
-    if (input.keys[KEY_S] != 0 || input.keys[KEY_DOWN] != 0) player_y += movement;
+
+    /* GPU normalized coordinates have +Y upward. W/Up therefore increase Y. */
+    if (input.keys[KEY_W] != 0 || input.keys[KEY_UP] != 0) player_y += movement;
+    if (input.keys[KEY_S] != 0 || input.keys[KEY_DOWN] != 0) player_y -= movement;
     if (input.keys[KEY_A] != 0 || input.keys[KEY_LEFT] != 0) player_x -= movement;
     if (input.keys[KEY_D] != 0 || input.keys[KEY_RIGHT] != 0) player_x += movement;
 
+    /* SDL cursor coordinates grow downward, opposite to GPU normalized Y. */
     if (input.mouse_left != 0) {
         player_x += input.mouse_delta_x * 0.002f;
-        player_y += input.mouse_delta_y * 0.002f;
+        player_y -= input.mouse_delta_y * 0.002f;
     }
 
     /* Keep the demo object inside the visible normalized-device-coordinate area. */
